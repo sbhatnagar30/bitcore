@@ -10,8 +10,8 @@ program
     '--recipients <recipients>',
     'REQUIRED - JSON array \'[{"address": "abc1234", "amount": xxxxxx}]\''
   )
-  .option('--utxos <utxos>', 'REQUIRED - Unspent transactions that can be spent')
-  .option('--change <change>', 'REQUIRED - Change addresses')
+  .option('--change [change]', 'optional - Change addresses')
+  .option('--utxos [utxos]', 'optional - Unspent transactions that can be spent')
   .option('--fee [fee]', 'optional - custom transaction fee to pay')
   .option('--target [target]', 'optional - custom target block for confirmation')
   .option('--path [path]', 'optional - Custom wallet storage path')
@@ -23,14 +23,15 @@ program
   .parse(process.argv);
 
 const main = async () => {
-  const { name, path, storageType } = program;
   let wallet;
   try {
-    const { recipients, utxos, change, fee, target, from, nonce, invoiceID, token } = program;
+    const { recipients, utxos, change, target, from, invoiceID, token, name, path, storageType  } = program;
+    let { fee, nonce } = program;
     wallet = await Wallet.loadWallet({ name, path, storageType });
 
     const parsedUtxos = utxos.includes('[') ? JSON.parse(utxos) : [];
     const parsedRecipients = recipients.includes('[') ? JSON.parse(recipients) : [];
+    let totalTransactionFee;
     if (!parsedRecipients.length) {
       throw new Error('invalid arguments');
     }
@@ -38,16 +39,16 @@ const main = async () => {
     if (!parsedRecipients.length || !parsedUtxos.length) {
         throw new Error('invalid arguments');
       }
-
+    const calculatedNetworkFeeKb = await wallet.getNetworkFee({ target });
       if (!fee) {
         const utxoBytes = 148;
         const outputBytes = 34;
         const transactionHeader = 10;
         const netWorkFeeSat = calculatedNetworkFeeKb.feerate * 1E8/1000;
         const transactionSize = (parsedUtxos.length * utxoBytes + parsedRecipients.length * outputBytes + transactionHeader + parsedUtxos.length);
+        totalTransactionFee = transactionSize * netWorkFeeSat;
         fee = transactionSize * netWorkFeeSat;
-      }
-    } else {
+      } else {
       if (!fee) {
         fee = JSON.parse(calculatedNetworkFeeKb).feerate;
       }

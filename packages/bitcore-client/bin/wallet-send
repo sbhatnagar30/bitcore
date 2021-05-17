@@ -38,18 +38,22 @@ const main = async () => {
     const feerate = await wallet.getNetworkFee();
     const feeRate = JSON.parse(feerate).feerate || 20 * scale;
     let nonce;
-    if (!['BTC', 'BCH'].includes(chain)) {
+    if (!['BTC', 'BCH', 'DOGE'].includes(chain)) {
       nonce = await wallet.getNonce();
     }
     const utxos = await wallet.getUtxosArray();
     const params = {
       feeRate,
-      nonce: Number(nonce),
+      nonce: 1,// Number(nonce),
       utxos,
       recipients,
       from: lastAddress,
       token
     };
+    if (chain === 'DOGE') {
+      delete params.feeRate;
+      params.fee = 1e8;
+    }
     const tx = await wallet.newTx(params);
     console.log('unsignedRawTx: ', tx);
     const passphrase = await promptly.password('Wallet Password:');

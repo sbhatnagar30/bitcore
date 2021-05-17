@@ -99,6 +99,9 @@ const main = async () => {
     }
     const utxos = await wallet.getUtxosArray();
     const params = { recipients, feeRate, from, invoiceID, data, value, utxos };
+    if (chain === 'DOGE') {
+      params.fee = 1e8;
+    }
     params.nonce = Number(nonce);
     const unsignedTx = await wallet.newTx(params);
     console.log(`unsignedRawTx: ${unsignedTx}`);
